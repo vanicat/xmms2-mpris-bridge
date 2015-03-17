@@ -60,6 +60,38 @@ DBUS_CLIENTNAME = "XMMS2_MPRIS2"
 # The name reported to xmms2, only alphanumeric caracters
 XMMS2_CLIENTNAME = 'MPRIS2_bridge'
 
+NOTRACK = { 'mpris:trackid': '/org/mpris/MediaPlayer2/TrackList/NoTrack' }
+
+
+def convert_dict (dict):
+    if dict['id'] == 0:
+        return NOTRACK
+
+    # id is mandatory
+    ret_dict = {
+        'mpris:trackid': dbus.ObjectPath('/org/mpris/MediaPlayer2/TrackList/{}'.format(dict['id']))
+    }
+
+    def translate_rating(x): return x/5.
+    def identity(x): return x
+
+    key_list = [('duration', 'mpris:length', dbus.types.UInt64),
+                ('tracknr', 'xesam:trackNumber', identity),
+                ('title', 'xesam:title', identity),
+                ('artist', 'xesam:artist', identity),
+                ('album', 'xesam:album', identity),
+                ('genre', 'xesam:genre', identity),
+                ('comment', 'xesam:comment', identity),
+                ('rating', 'xesam:userRating', translate_rating)]
+
+    for xmms2_key, mpris_key, trans in key_list:
+        try: ret_dict[mpris_key] = trans(dict[xmms2_key])
+        except KeyError: pass
+
+    ret_dict=dbus.Dictionary(ret_dict, signature='sv')
+
+    return ret_dict
+
 class root():
     def __init__ (self, xmms2):
         self.xmms2 = xmms2
