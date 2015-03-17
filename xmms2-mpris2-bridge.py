@@ -73,9 +73,10 @@ def convert_dict (dict):
     }
 
     def translate_rating(x): return x/5.
+    def translate_duration(x): return x*1000L
     def identity(x): return x
 
-    key_list = [('duration', 'mpris:length', dbus.types.UInt64),
+    key_list = [('duration', 'mpris:length', translate_duration),
                 ('tracknr', 'xesam:trackNumber', identity),
                 ('title', 'xesam:title', identity),
                 ('artist', 'xesam:artist', identity),
@@ -139,6 +140,9 @@ class player():
         self.xmms2.playback_status(cb=self._cb_set_status)
         self.xmms2.broadcast_playback_status(cb=self._cb_status_changed)
 
+        self.xmms2.playback_current_id(cb=self._cb_set_id)
+        self.xmms2.broadcast_playback_current_id(cb=self._cb_set_id)
+
     def _cb_status_changed(self,res):
         self._cb_set_status(res)
         self.properties_changed({ 'PlaybackStatus': self.playback_status }, [])
@@ -152,6 +156,18 @@ class player():
         else:
             self.playback_status = 'Playing'
 
+    def _cb_set_id(self,res):
+        trackid = res.value()
+        if trackid == 0:
+            self.metadata = NOTRACK
+            self.properties_changed({ 'Metadata': self.metadata }, [])
+        else:
+            self.xmms2.medialib_get_info(trackid,cb=self._cb_set_metadata)
+
+    def _cb_set_metadata(self,res):
+        metadata = res.value()
+        self.metadata = convert_dict(metadata)
+        self.properties_changed({ 'Metadata': self.metadata }, [])
 
     CANGONEXT = True
     CANGOPREVIOUS = True
