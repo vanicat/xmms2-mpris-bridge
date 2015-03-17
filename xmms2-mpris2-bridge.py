@@ -143,6 +143,9 @@ class player():
         self.xmms2.playback_current_id(cb=self._cb_set_id)
         self.xmms2.broadcast_playback_current_id(cb=self._cb_set_id)
 
+        self.xmms2.broadcast_playback_volume_changed(cb=self._cb_set_volume)
+        self.xmms2.playback_volume_get(cb=self._cb_set_volume)
+
         self.xmms2.playback_playtime(cb=self._cb_set_position)
         self.xmms2.signal_playback_playtime(cb=self._cb_set_position)
 
@@ -171,6 +174,10 @@ class player():
         metadata = res.value()
         self.metadata = convert_dict(metadata)
         self.properties_changed({ 'Metadata': self.metadata }, [])
+
+    def _cb_set_volume(self,res):
+        self.volume = res.value()['master']/100.
+        self.properties_changed({ 'Volume': self.volume }, [])
 
     def _cb_set_position(self,res):
         self.position = res.value()*1000L
