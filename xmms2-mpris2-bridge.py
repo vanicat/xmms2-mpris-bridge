@@ -52,18 +52,17 @@ except ImportError:
     sys.exit(1)
 
 MPRIS = "org.mpris.MediaPlayer2.xmms2"
-MEDIAPLAYER = "org.freedesktop.MediaPlayer2"
-MEDIAPLAYER_PLAYER = "MediaPlayer2.Player"
+MEDIAPLAYER = "org.mpris.MediaPlayer2"
+MEDIAPLAYER_PLAYER = "org.mpris.MediaPlayer2.Player"
 
 # The name reported to dbus
 DBUS_CLIENTNAME = "XMMS2_MPRIS2"
 # The name reported to xmms2, only alphanumeric caracters
 XMMS2_CLIENTNAME = 'MPRIS2_bridge'
 
-class mpris (dbus.service.Object):
+class root():
     def __init__ (self, xmms2):
         self.xmms2 = xmms2
-        dbus.service.Object.__init__ (self, dbus.SessionBus(), "/org/mpris/MediaPlayer2")
 
     IDENTITY = "Xmms2"
     CANQUIT = True
@@ -74,33 +73,57 @@ class mpris (dbus.service.Object):
     SUPPORTEDURISCHEMES = [ 'file', 'http', 'rtsp' ], # TODO : lot more to put there...
     SUPPORTEDMIMETYPES = [ 'audio/mpeg', 'application/ogg', ], # TODO : lot more to put there...
 
-    @dbus.service.method (MEDIAPLAYER, in_signature='', out_signature='')
+    def Get(self, property_name):
+        return self.GetAll()[property_name]
+
+    def GetAll(self):
+        return { 'CanQuit': CANQUIT,
+                 'Fullscreen' : FULLSCREEN,
+                 'CanSetFullscreen' : CANSETFULLSCREEN,
+                 'CanRaise': CANRAISE,
+                 'HasTrackList': HASTRACKLIST,
+                 'Identity' : IDENTITY,
+                 # 'DesktopEntry' : ...,
+                 'SupportedUriSchemes' : SUPPORTEDURISCHEMES,
+                 'SupportedMimeTypes' : SUPPORTEDMIMETYPES
+             }
+
     def Raise (self):
         pass
 
+    def Quit (self):
+        self.xmms2.quit()
+
+class mpris(dbus.service.Object):
+    def __init__ (self, xmms2):
+        self.xmms2 = xmms2
+        dbus.service.Object.__init__ (self, dbus.SessionBus(), "/org/mpris/MediaPlayer2")
+        self.root = root(xmms2)
+
+
+    @dbus.service.method (MEDIAPLAYER, in_signature='', out_signature='')
+    def Raise (self):
+        self.root.Raise()
+
     @dbus.service.method (MEDIAPLAYER, in_signature='', out_signature='')
     def Quit (self):
-        self.xmms2.quit ()
+        self.root.Quit()
 
     @dbus.service.method(dbus.PROPERTIES_IFACE,
                          in_signature='ss', out_signature='v')
     def Get(self, interface_name, property_name):
-        return self.GetAll(interface_name)[property_name]
+        if interface_name == MEDIAPLAYER:
+            return self.root.Get(property_name)
+        else:
+            raise dbus.exceptions.DBusException(
+                'com.example.UnknownInterface',
+                'The Foo object does not implement the %s interface' % interface_name)
 
     @dbus.service.method(dbus.PROPERTIES_IFACE,
                          in_signature='s', out_signature='a{sv}')
     def GetAll(self, interface_name):
         if interface_name == MEDIAPLAYER:
-            return { 'CanQuit': CANQUIT,
-                     'Fullscreen' : FULLSCREEN,
-                     'CanSetFullscreen' : CANSETFULLSCREEN,
-                     'CanRaise': CANRAISE,
-                     'HasTrackList': HASTRACKLIST,
-                     'Identity' : IDENTITY,
-                     # 'DesktopEntry' : ...,
-                     'SupportedUriSchemes' : SUPPORTEDURISCHEMES,
-                     'SupportedMimeTypes' : SUPPORTEDMIMETYPES
-            }
+            return self.root.GetAll()
         else:
             raise dbus.exceptions.DBusException(
                 'com.example.UnknownInterface',
