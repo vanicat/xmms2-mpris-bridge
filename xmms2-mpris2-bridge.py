@@ -165,7 +165,7 @@ class player():
         return self.GetAll()[property_name]
 
     def GetAll(self):
-        return {
+        return dbus.Dictionary({
             'PlaybackStatus': self.playback_status,
             # 'LoopStatus': 'None',
             'Rate': self.RATE,
@@ -181,7 +181,7 @@ class player():
             'CanPause': self.CANPAUSE,
             'CanSeek': self.CANSEEK,
             'CanControl': self.CANCONTROL
-        }
+        }, signature='sv')
 
     def Next(self):
         self.xmms2.playlist_set_next_rel (1)
