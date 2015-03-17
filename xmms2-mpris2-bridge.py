@@ -96,8 +96,9 @@ class root():
 
 ## The org.mpris.MediaPlayer2.Player interface
 class player():
-    def __init__ (self, xmms2):
+    def __init__ (self, xmms2, properties_changed):
         self.xmms2 = xmms2
+        self.properties_changed = properties_changed
         self.playback_status = 'Stopped'
         self.metadata = { 'mpris:trackid': 0 }
         self.volume = 1.0
@@ -177,7 +178,7 @@ class mpris(dbus.service.Object):
         self.xmms2 = xmms2
         dbus.service.Object.__init__ (self, dbus.SessionBus(), "/org/mpris/MediaPlayer2")
         self.root = root(xmms2)
-        self.player = player(xmms2)
+        self.player = player(xmms2,self.player_properies_changed)
 
 
     @dbus.service.method (MEDIAPLAYER, in_signature='', out_signature='')
@@ -228,6 +229,9 @@ class mpris(dbus.service.Object):
     def Seeked (self, caps):
         self.player.Seeked(caps)
 
+    def player_properies_changed(self, changed_propreties, invalidated_properties):
+        self.PropertiesChanged(MEDIAPLAYER_PLAYER, changed_propreties, invalidated_properties)
+
     @dbus.service.method(dbus.PROPERTIES_IFACE,
                          in_signature='ss', out_signature='v')
     def Get(self, interface_name, property_name):
@@ -251,6 +255,14 @@ class mpris(dbus.service.Object):
             raise dbus.exceptions.DBusException(
                 'com.example.UnknownInterface',
                 'The Foo object does not implement the %s interface' % interface_name)
+
+    @dbus.service.signal (dbus.PROPERTIES_IFACE, signature='sa{sv}as')
+    def PropertiesChanged(self, interface_name, changed_properties,
+                          invalidated_properties):
+        pass
+
+
+
 
 class Xmms2MPRIS:
     def __init__(self):
