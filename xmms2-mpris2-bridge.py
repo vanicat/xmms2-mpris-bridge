@@ -99,6 +99,14 @@ class player():
     def __init__ (self, xmms2):
         self.xmms2 = xmms2
 
+    CANGONEXT = True
+    CANGOPREVIOUS = True
+    CANPLAY = True
+    CANPAUSE = True
+    CANSEEK = True
+    CANCONTROL = True
+    RATE = 1.0
+
     def Get(self, property_name):
         return self.GetAll()[property_name]
 
@@ -106,19 +114,19 @@ class player():
         return {
             'PlaybackStatus': 'Stopped',
             # 'LoopStatus': 'None',
-            'Rate': 1.0,
+            'Rate': self.RATE,
             # 'Shuffle': False,
             'Metadata': { 'mpris:trackid': 321 },
             'Volume': 1.0,
             'Position': 1,
-            'MinimumRate': 1.0,
-            'MaximumRate': 1.0,
-            'CanGoNext': True,
-            'CanGoPrevious': True,
-            'CanPlay': True,
-            'CanPause': True,
-            'CanSeek': False,
-            'CanControl': True,
+            'MinimumRate': self.RATE,
+            'MaximumRate': self.RATE,
+            'CanGoNext': self.CANGONEXT,
+            'CanGoPrevious': self.CANGOPREVIOUS,
+            'CanPlay': self.CANPLAY,
+            'CanPause': self.CANPAUSE,
+            'CanSeek': self.CANSEEK,
+            'CanControl': self.CANCONTROL
         }
 
     def Next(self):
