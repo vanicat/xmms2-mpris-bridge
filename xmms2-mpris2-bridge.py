@@ -143,6 +143,9 @@ class player():
         self.xmms2.playback_current_id(cb=self._cb_set_id)
         self.xmms2.broadcast_playback_current_id(cb=self._cb_set_id)
 
+        self.xmms2.playback_playtime(cb=self._cb_set_position)
+        self.xmms2.signal_playback_playtime(cb=self._cb_set_position)
+
     def _cb_status_changed(self,res):
         self._cb_set_status(res)
         self.properties_changed({ 'PlaybackStatus': self.playback_status }, [])
@@ -168,6 +171,10 @@ class player():
         metadata = res.value()
         self.metadata = convert_dict(metadata)
         self.properties_changed({ 'Metadata': self.metadata }, [])
+
+    def _cb_set_position(self,res):
+        self.position = res.value()*1000L
+        self.properties_changed({ 'Position': self.position }, [])
 
     CANGONEXT = True
     CANGOPREVIOUS = True
