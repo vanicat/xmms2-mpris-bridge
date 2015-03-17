@@ -104,6 +104,23 @@ class player():
         self.volume = 1.0
         self.position = 1
 
+        self.xmms2.playback_status(cb=self._cb_set_status)
+        self.xmms2.broadcast_playback_status(cb=self._cb_status_changed)
+
+    def _cb_status_changed(self,res):
+        self._cb_set_status(res)
+        self.properties_changed({ 'PlaybackStatus': self.playback_status }, [])
+
+    def _cb_set_status(self,res):
+        status = res.value()
+        if status == PLAYBACK_STATUS_STOP:
+            self.playback_status = 'Stopped'
+        elif status == PLAYBACK_STATUS_PAUSE:
+            self.playback_status = 'Paused'
+        else:
+            self.playback_status = 'Playing'
+
+
     CANGONEXT = True
     CANGOPREVIOUS = True
     CANPLAY = True
