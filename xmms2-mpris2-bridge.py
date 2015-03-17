@@ -98,6 +98,10 @@ class root():
 class player():
     def __init__ (self, xmms2):
         self.xmms2 = xmms2
+        self.playback_status = 'Stopped'
+        self.metadata = { 'mpris:trackid': 0 }
+        self.volume = 1.0
+        self.position = 1
 
     CANGONEXT = True
     CANGOPREVIOUS = True
@@ -112,13 +116,13 @@ class player():
 
     def GetAll(self):
         return {
-            'PlaybackStatus': 'Stopped',
+            'PlaybackStatus': self.playback_status,
             # 'LoopStatus': 'None',
             'Rate': self.RATE,
             # 'Shuffle': False,
-            'Metadata': { 'mpris:trackid': 321 },
-            'Volume': 1.0,
-            'Position': 1,
+            'Metadata': self.metadata,
+            'Volume': self.volume,
+            'Position': self.position,
             'MinimumRate': self.RATE,
             'MaximumRate': self.RATE,
             'CanGoNext': self.CANGONEXT,
