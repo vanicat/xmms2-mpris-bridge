@@ -132,7 +132,7 @@ class player():
         self.xmms2 = xmms2
         self.properties_changed = properties_changed
         self.playback_status = 'Stopped'
-        self.metadata = { 'mpris:trackid': 0 }
+        self.metadata = NOTRACK
         self.volume = 1.0
         self.position = 1
 
