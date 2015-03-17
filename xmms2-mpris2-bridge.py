@@ -67,7 +67,7 @@ class root():
     IDENTITY = "Xmms2"
     CANQUIT = True
     CANRAISE = False
-    HASTRACKLIST = False # TODO: set this to true, but not yet
+    HASTRACKLIST = False
     FULLSCREEN = False
     CANSETFULLSCREEN = False
     SUPPORTEDURISCHEMES = [ 'file', 'http', 'rtsp' ], # TODO : lot more to put there...
@@ -77,15 +77,15 @@ class root():
         return self.GetAll()[property_name]
 
     def GetAll(self):
-        return { 'CanQuit': CANQUIT,
-                 'Fullscreen' : FULLSCREEN,
-                 'CanSetFullscreen' : CANSETFULLSCREEN,
-                 'CanRaise': CANRAISE,
-                 'HasTrackList': HASTRACKLIST,
-                 'Identity' : IDENTITY,
+        return { 'CanQuit': self.CANQUIT,
+                 'Fullscreen' : self.FULLSCREEN,
+                 'CanSetFullscreen' : self.CANSETFULLSCREEN,
+                 'CanRaise': self.CANRAISE,
+                 'HasTrackList': self.HASTRACKLIST,
+                 'Identity' : self.IDENTITY,
                  # 'DesktopEntry' : ...,
-                 'SupportedUriSchemes' : SUPPORTEDURISCHEMES,
-                 'SupportedMimeTypes' : SUPPORTEDMIMETYPES
+                 'SupportedUriSchemes' : self.SUPPORTEDURISCHEMES,
+                 'SupportedMimeTypes' : self.SUPPORTEDMIMETYPES
              }
 
     def Raise (self):
@@ -94,11 +94,78 @@ class root():
     def Quit (self):
         self.xmms2.quit()
 
+## The org.mpris.MediaPlayer2.Player interface
+class player():
+    def __init__ (self, xmms2):
+        self.xmms2 = xmms2
+
+    def Get(self, property_name):
+        return self.GetAll()[property_name]
+
+    def GetAll(self):
+        return {
+            'PlaybackStatus': 'Stopped',
+            # 'LoopStatus': 'None',
+            'Rate': 1.0,
+            # 'Shuffle': False,
+            'Metadata': { 'mpris:trackid': 321 },
+            'Volume': 1.0,
+            'Position': 1,
+            'MinimumRate': 1.0,
+            'MaximumRate': 1.0,
+            'CanGoNext': True,
+            'CanGoPrevious': True,
+            'CanPlay': True,
+            'CanPause': True,
+            'CanSeek': False,
+            'CanControl': True,
+        }
+
+    def Next(self):
+        self.xmms2.playlist_set_next_rel (1)
+        self.xmms2.playback_tickle ()
+
+    def Previous(self):
+        self.xmms2.playlist_set_next_rel (-1)
+        self.xmms2.playback_tickle ()
+
+    def Pause(self):
+        self.xmms2.playback_pause()
+
+    def PlayPause(self):
+        self.xmms2.playback_status(cb=self._cb_handle_play_pause)
+
+    def _cb_handle_play_pause(self, status):
+        status = status.value()
+        if status == PLAYBACK_STATUS_STOP or status == PLAYBACK_STATUS_PAUSE:
+            self.xmms2.playback_start()
+        else:
+            self.xmms2.playback_pause()
+
+    def Stop(self):
+        self.xmms2.playback_stop()
+
+    def Play(self):
+        self.xmms2.playback_start()
+
+    def Seek(self,position):
+        self.xmms2.playback_seek_ms(position)
+
+    def SetPosition(self,trackid, position):
+        pass
+
+    def OpenUri(self,uri):
+        pass
+
+    def Seeked (self, caps):
+        pass
+
 class mpris(dbus.service.Object):
     def __init__ (self, xmms2):
         self.xmms2 = xmms2
         dbus.service.Object.__init__ (self, dbus.SessionBus(), "/org/mpris/MediaPlayer2")
         self.root = root(xmms2)
+        self.player = player(xmms2)
 
 
     @dbus.service.method (MEDIAPLAYER, in_signature='', out_signature='')
@@ -109,11 +176,53 @@ class mpris(dbus.service.Object):
     def Quit (self):
         self.root.Quit()
 
+    @dbus.service.method(MEDIAPLAYER_PLAYER, in_signature='', out_signature='')
+    def Next(self):
+        self.player.Next()
+
+    @dbus.service.method (MEDIAPLAYER_PLAYER, in_signature='', out_signature='')
+    def Previous(self):
+        self.player.Previous()
+
+    @dbus.service.method (MEDIAPLAYER_PLAYER, in_signature='', out_signature='')
+    def Pause(self):
+        self.player.Pause()
+
+    @dbus.service.method (MEDIAPLAYER_PLAYER, in_signature='', out_signature='')
+    def PlayPause(self):
+        self.player.PlayPause()
+
+    @dbus.service.method (MEDIAPLAYER_PLAYER, in_signature='', out_signature='')
+    def Stop(self):
+        self.player.Stop()
+
+    @dbus.service.method (MEDIAPLAYER_PLAYER, in_signature='', out_signature='')
+    def Play(self):
+        self.player.Play()
+
+    @dbus.service.method (MEDIAPLAYER_PLAYER, in_signature='x', out_signature='')
+    def Seek(self,position):
+        self.player.Seek()
+
+    @dbus.service.method (MEDIAPLAYER_PLAYER, in_signature='ox', out_signature='')
+    def SetPosition(self,trackid, position):
+        self.player.SetPosition(trackid, position)
+
+    @dbus.service.method (MEDIAPLAYER_PLAYER, in_signature='s', out_signature='')
+    def OpenUri(self,uri):
+        self.player.OpenUri(uri)
+
+    @dbus.service.signal (MEDIAPLAYER_PLAYER, signature='x')
+    def Seeked (self, caps):
+        self.player.Seeked(caps)
+
     @dbus.service.method(dbus.PROPERTIES_IFACE,
                          in_signature='ss', out_signature='v')
     def Get(self, interface_name, property_name):
         if interface_name == MEDIAPLAYER:
             return self.root.Get(property_name)
+        elif interface_name == MEDIAPLAYER_PLAYER:
+            return self.player.Get(property_name)
         else:
             raise dbus.exceptions.DBusException(
                 'com.example.UnknownInterface',
@@ -124,6 +233,8 @@ class mpris(dbus.service.Object):
     def GetAll(self, interface_name):
         if interface_name == MEDIAPLAYER:
             return self.root.GetAll()
+        elif interface_name == MEDIAPLAYER_PLAYER:
+            return self.player.GetAll()
         else:
             raise dbus.exceptions.DBusException(
                 'com.example.UnknownInterface',
